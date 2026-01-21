@@ -19,32 +19,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Archivo embebido codificado en base64 (mapeo de monedas)
-ARCHIVO_EMBEBIDO = """
-UEsDBBQAAAAIAKCXeFmJxY6RywAAAMkAAAARABAAZGF0YS9tb25lZGFzLnhsc3gAAAAAUEsHCInFjpHLAAAAyQAAAFBLAwQUAAAACACs23hZhZf77UQIAABBIwAAEwBQAGRhdGEvXzAzLm5ldHdvcmt4ABAAAAAAaGVsbG8gd29ybGQgZnJvbSBweXRob24hUEsHCIWX++1ECAAAQSMAAFBLAwQUAAAACACs23hZhZf77UQIAABBIwAAEwBQAGRhdGEvXzAzLm5ldHdvcmt4ABAAAAAAaGVsbG8gd29ybGQgZnJvbSBweXRob24hUEsHCIWX++1ECAAAQSMAAFBLAwQUAAAACACs23hZhZf77UQIAABBIwAAEwBQAGRhdGEvXzAzLm5ldHdvcmt4ABAAAAAAaGVsbG8gd29ybGQgZnJvbSBweXRob24hUEsHCIWX++1ECAAAQSMAAFBLAwQUAAAACACs23hZhZf77UQIAABBIwAAEwBQAGRhdGEvXzAzLm5ldHdvcmt4ABAAAAAAaGVsbG8gd29ybGQgZnJvbSBweXRob24hUEsHCIWX++1ECAAAQSMAAFBLAQIAACAAFAAAAAgAoJd4WYnFjpHLAAAAyQAAABEAEAAAAAAAAAAAAAAApIEAAAAA
-"""
-
 def cargar_mapeo_monedas():
-    """Carga el mapeo de monedas desde el archivo embebido"""
-    try:
-        # Crear mapeo básico por defecto
-        mapeo_default = {
-            'USD': 'USD', 'EUR': 'EUR', 'GBP': 'GBP', 'CAD': 'CAD', 'AUD': 'AUD',
-            'JPY': 'JPY', 'CHF': 'CHF', 'SEK': 'SEK', 'NOK': 'NOK', 'DKK': 'DKK',
-            'PLN': 'PLN', 'CZK': 'CZK', 'HUF': 'HUF', 'RON': 'RON', 'BGN': 'BGN',
-            'HRK': 'HRK', 'RSD': 'RSD', 'TRY': 'TRY', 'RUB': 'RUB', 'UAH': 'UAH',
-            'BYN': 'BYN', 'CNY': 'CNY', 'KRW': 'KRW', 'INR': 'INR', 'SGD': 'SGD',
-            'HKD': 'HKD', 'TWD': 'TWD', 'THB': 'THB', 'MYR': 'MYR', 'IDR': 'IDR',
-            'PHP': 'PHP', 'VND': 'VND', 'BRL': 'BRL', 'ARS': 'ARS', 'CLP': 'CLP',
-            'COP': 'COP', 'PEN': 'PEN', 'MXN': 'MXN', 'ZAR': 'ZAR', 'EGP': 'EGP',
-            'MAD': 'MAD', 'TND': 'TND', 'KES': 'KES', 'NGN': 'NGN', 'GHS': 'GHS'
-        }
-        
-        return mapeo_default
-        
-    except Exception as e:
-        st.warning(f"No se pudo cargar el mapeo de monedas embebido: {e}")
-        return {'USD': 'USD', 'EUR': 'EUR', 'GBP': 'GBP'}
+    """Carga el mapeo de monedas"""
+    mapeo_default = {
+        'USD': 'USD', 'EUR': 'EUR', 'GBP': 'GBP', 'CAD': 'CAD', 'AUD': 'AUD',
+        'JPY': 'JPY', 'CHF': 'CHF', 'SEK': 'SEK', 'NOK': 'NOK', 'DKK': 'DKK',
+        'PLN': 'PLN', 'CZK': 'CZK', 'HUF': 'HUF', 'RON': 'RON', 'BGN': 'BGN',
+        'HRK': 'HRK', 'RSD': 'RSD', 'TRY': 'TRY', 'RUB': 'RUB', 'UAH': 'UAH',
+        'BYN': 'BYN', 'CNY': 'CNY', 'KRW': 'KRW', 'INR': 'INR', 'SGD': 'SGD',
+        'HKD': 'HKD', 'TWD': 'TWD', 'THB': 'THB', 'MYR': 'MYR', 'IDR': 'IDR',
+        'PHP': 'PHP', 'VND': 'VND', 'BRL': 'BRL', 'ARS': 'ARS', 'CLP': 'CLP',
+        'COP': 'COP', 'PEN': 'PEN', 'MXN': 'MXN', 'ZAR': 'ZAR', 'EGP': 'EGP'
+    }
+    return mapeo_default
 
 def limpiar_nombre_banco(nombre_hoja):
     """Extrae el nombre del banco desde el nombre de la hoja"""
@@ -139,8 +126,10 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                         mapeo_columnas['Estado'] = idx
                     elif 'aging' in nombre_lower:
                         mapeo_columnas['Aging'] = idx
-                    elif 'fecha' in nombre_lower:
+                    elif 'fecha' in nombre_lower and 'contable' in nombre_lower:
                         mapeo_columnas['Fecha'] = idx
+                    elif 'fecha' in nombre_lower and 'transac' in nombre_lower:
+                        mapeo_columnas['Fecha transacción'] = idx
                     elif 'categoría' in nombre_lower or 'categoria' in nombre_lower:
                         mapeo_columnas['Categoría'] = idx
                     elif 'monto' in nombre_lower and ('funcional' in nombre_lower or 'total' in nombre_lower):
@@ -151,14 +140,18 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                         mapeo_columnas['Responsable'] = idx
                     elif 'flex' in nombre_lower and 'contable' in nombre_lower:
                         mapeo_columnas['Flex contable'] = idx
-                    elif 'flex' in nombre_lower and 'banco' in nombre_lower:
+                    elif 'flex' in nombre_lower and ('banco' in nombre_lower or 'efectivo' in nombre_lower):
                         mapeo_columnas['Flex banco'] = idx
+                    elif 'tipo' in nombre_lower and 'extracto' in nombre_lower:
+                        mapeo_columnas['Tipo extracto'] = idx
                 
                 # Mapeos fijos por índice
                 if len(encabezados) > 7:
                     mapeo_columnas['Numero de transacción'] = 7
                 if len(encabezados) > 11:
                     mapeo_columnas['Proveedor/Cliente'] = 11
+                
+                log(f"📋 Columnas mapeadas: {list(mapeo_columnas.keys())}")
                 
                 # Procesar filas desde el índice 12
                 filas_validas = []
@@ -177,10 +170,15 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                             pass
                     
                     # Criterio 2: Fecha no vacía
-                    if 'Fecha' in mapeo_columnas:
-                        fecha_val = str(fila.iloc[mapeo_columnas['Fecha']])
-                        if fecha_val and fecha_val != 'nan' and fecha_val.strip():
-                            criterios_cumplidos += 1
+                    fecha_encontrada = False
+                    for col_fecha in ['Fecha', 'Fecha transacción']:
+                        if col_fecha in mapeo_columnas:
+                            fecha_val = str(fila.iloc[mapeo_columnas[col_fecha]])
+                            if fecha_val and fecha_val != 'nan' and fecha_val.strip():
+                                fecha_encontrada = True
+                                break
+                    if fecha_encontrada:
+                        criterios_cumplidos += 1
                     
                     # Criterio 3: Monto numérico distinto de 0
                     if 'Monto' in mapeo_columnas:
@@ -220,9 +218,10 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                 df_procesado = pd.DataFrame()
                 
                 columnas_objetivo = [
-                    'Estado', 'Aging', 'Fecha', 'Categoría', 'Numero de transacción',
-                    'Proveedor/Cliente', 'Monto', 'Concepto', 'Responsable',
-                    'Flex contable', 'Flex banco', 'Moneda', 'BANCO'
+                    'Estado', 'Aging', 'Fecha', 'Fecha transacción', 'Categoría', 
+                    'Numero de transacción', 'Proveedor/Cliente', 'Monto', 'Concepto', 
+                    'Responsable', 'Flex contable', 'Flex banco', 'Tipo extracto',
+                    'Moneda', 'BANCO'
                 ]
                 
                 for col in columnas_objetivo[:-2]:
@@ -293,29 +292,41 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
         
         col_estado = None
         col_monto = None
+        col_tipo_extracto = None
         
         for col in df_final.columns:
             if 'estado' in col.lower():
                 col_estado = col
             if 'monto' in col.lower():
                 col_monto = col
+            if 'tipo' in col.lower() and 'extracto' in col.lower():
+                col_tipo_extracto = col
+        
+        log(f"🔍 Columnas identificadas - Estado: {col_estado}, Monto: {col_monto}, Tipo extracto: {col_tipo_extracto}")
         
         if col_estado and col_monto:
             df_final['DEBE'] = 0.0
             df_final['HABER'] = 0.0
             
+            # Textos que indican DEBE (exactos según tu archivo)
             textos_debe = [
-                "III. Partidas contabilizadas pendientes de debitar",
-                "V. Partidas acreditadas por el banco y pendientes de contabilizar por la empresa"
+                "III. Partidas contabilizadas pendientes de debitar en el extracto bancario",
+                "V. Partidas acreditadas en el extracto bancario, pendientes de contabilizar"
             ]
             
+            # Textos que indican HABER (exactos según tu archivo)
             textos_haber = [
-                "II. Partidas contabilizadas pendientes de acreditar", 
-                "IV. Partidas debitadas por el banco y pendientes de contabilizar por la empresa"
+                "II. Partidas contabilizadas pendientes de acreditar en el extracto bancario",
+                "IV. Partidas debitadas en el extracto bancario, pendientes de contabilizar"
             ]
+            
+            debe_count = 0
+            haber_count = 0
             
             for idx, row in df_final.iterrows():
                 estado_text = str(row[col_estado]).strip()
+                tipo_extracto = str(row.get(col_tipo_extracto, '')).strip().upper() if col_tipo_extracto else ''
+                
                 try:
                     monto_val = pd.to_numeric(row[col_monto], errors='coerce')
                     if pd.isna(monto_val):
@@ -323,14 +334,40 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                 except:
                     monto_val = 0
                 
-                if any(texto in estado_text for texto in textos_debe):
-                    df_final.at[idx, 'DEBE'] = monto_val
+                # Priorizar clasificación por tipo de extracto si está disponible
+                if tipo_extracto == 'DEBIT':
+                    df_final.at[idx, 'DEBE'] = abs(monto_val)
                     df_final.at[idx, 'HABER'] = 0.0
-                elif any(texto in estado_text for texto in textos_haber):
-                    df_final.at[idx, 'HABER'] = monto_val
+                    debe_count += 1
+                elif tipo_extracto == 'CREDIT':
+                    df_final.at[idx, 'HABER'] = abs(monto_val)
                     df_final.at[idx, 'DEBE'] = 0.0
+                    haber_count += 1
+                # Si no hay tipo extracto, usar textos del estado
+                elif any(texto in estado_text for texto in textos_debe):
+                    df_final.at[idx, 'DEBE'] = abs(monto_val)
+                    df_final.at[idx, 'HABER'] = 0.0
+                    debe_count += 1
+                elif any(texto in estado_text for texto in textos_haber):
+                    df_final.at[idx, 'HABER'] = abs(monto_val)
+                    df_final.at[idx, 'DEBE'] = 0.0
+                    haber_count += 1
+                else:
+                    # Por defecto, usar el signo del monto
+                    if monto_val > 0:
+                        df_final.at[idx, 'DEBE'] = monto_val
+                        df_final.at[idx, 'HABER'] = 0.0
+                        debe_count += 1
+                    elif monto_val < 0:
+                        df_final.at[idx, 'HABER'] = abs(monto_val)
+                        df_final.at[idx, 'DEBE'] = 0.0
+                        haber_count += 1
             
+            # Calcular SALDO
             df_final['SALDO'] = df_final['DEBE'] - df_final['HABER']
+            
+            log(f"💰 Cálculo completado: {debe_count} registros en DEBE, {haber_count} en HABER")
+            
         else:
             log("⚠️  No se pudieron identificar columnas de Estado o Monto para calcular DEBE/HABER")
             df_final['DEBE'] = 0.0
@@ -339,10 +376,10 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
         
         # Reordenar columnas
         columnas_finales = [
-            'Estado', 'Aging', 'Fecha', 'Categoría', 'Numero de transacción',
-            'Proveedor/Cliente', 'Monto', 'Concepto', 'Responsable',
-            'Flex contable', 'Flex banco', 'Moneda', 'BANCO',
-            'DEBE', 'HABER', 'SALDO'
+            'Estado', 'Aging', 'Fecha', 'Fecha transacción', 'Categoría', 
+            'Numero de transacción', 'Proveedor/Cliente', 'Monto', 'Concepto', 
+            'Responsable', 'Flex contable', 'Flex banco', 'Tipo extracto',
+            'Moneda', 'BANCO', 'DEBE', 'HABER', 'SALDO'
         ]
         
         for col in df_final.columns:
@@ -358,12 +395,18 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
             'Métrica': [
                 'Total de registros procesados',
                 'Número de bancos procesados', 
+                'Total DEBE',
+                'Total HABER',
+                'SALDO FINAL',
                 'Fecha de procesamiento',
                 'Archivo procesado'
             ],
             'Valor': [
                 len(df_final),
                 len(df_final['BANCO'].unique()) if 'BANCO' in df_final.columns else 0,
+                f"{df_final['DEBE'].sum():,.2f}" if 'DEBE' in df_final.columns else 0,
+                f"{df_final['HABER'].sum():,.2f}" if 'HABER' in df_final.columns else 0,
+                f"{df_final['SALDO'].sum():,.2f}" if 'SALDO' in df_final.columns else 0,
                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'Archivo subido'
             ]
@@ -373,6 +416,9 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
         log(f"\n🎉 ¡Procesamiento completado exitosamente!")
         log(f"📊 Total de registros: {len(df_final)}")
         log(f"🏦 Bancos procesados: {len(df_final['BANCO'].unique()) if 'BANCO' in df_final.columns else 0}")
+        log(f"💰 Total DEBE: {df_final['DEBE'].sum():,.2f}")
+        log(f"💰 Total HABER: {df_final['HABER'].sum():,.2f}")
+        log(f"💰 SALDO: {df_final['SALDO'].sum():,.2f}")
         
         return df_final, df_resumen, df_estadisticas
         
@@ -482,6 +528,15 @@ def main():
                         suma_haber = df_final['HABER'].sum() if 'HABER' in df_final.columns else 0
                         st.metric("💰 Total HABER", f"{suma_haber:,.2f}")
                     
+                    # Mostrar SALDO final
+                    saldo_final = suma_debe - suma_haber
+                    if saldo_final > 0:
+                        st.success(f"💰 **SALDO FINAL: ${saldo_final:,.2f}** (A favor)")
+                    elif saldo_final < 0:
+                        st.error(f"💰 **SALDO FINAL: ${abs(saldo_final):,.2f}** (En contra)")
+                    else:
+                        st.info(f"💰 **SALDO FINAL: $0.00** (Balanceado)")
+                    
                     # Tabs para mostrar resultados
                     tab1, tab2, tab3 = st.tabs(["📋 Datos Consolidados", "📊 Resumen del Proceso", "📈 Estadísticas"])
                     
@@ -489,6 +544,18 @@ def main():
                         st.subheader("📋 Datos Consolidados")
                         st.dataframe(df_final, use_container_width=True)
                         st.info(f"Total de registros: {len(df_final)}")
+                        
+                        # Mostrar muestra de registros con DEBE/HABER
+                        debe_registros = df_final[df_final['DEBE'] > 0]
+                        haber_registros = df_final[df_final['HABER'] > 0]
+                        
+                        if len(debe_registros) > 0:
+                            st.subheader(f"💰 Registros DEBE ({len(debe_registros)} registros)")
+                            st.dataframe(debe_registros[['Estado', 'Monto', 'DEBE', 'BANCO']].head(10), use_container_width=True)
+                        
+                        if len(haber_registros) > 0:
+                            st.subheader(f"💰 Registros HABER ({len(haber_registros)} registros)")
+                            st.dataframe(haber_registros[['Estado', 'Monto', 'HABER', 'BANCO']].head(10), use_container_width=True)
                     
                     with tab2:
                         st.subheader("📊 Resumen del Proceso")
@@ -542,6 +609,7 @@ def main():
     # Footer
     st.markdown("---")
     st.markdown("🔧 **Desarrollado para automatizar el procesamiento de carátulas bancarias**")
+    st.markdown("💡 **Tip**: Los montos se clasifican automáticamente usando los textos del campo Estado y la columna Tipo de extracto")
 
 if __name__ == "__main__":
     main()
