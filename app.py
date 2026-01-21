@@ -1,342 +1,547 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
-from datetime import datetime
 import base64
-import warnings
 import io
 import os
+from datetime import datetime
+import warnings
 import re
 
-# Configurar warnings
 warnings.filterwarnings('ignore')
 
-# Excel embebido con mapeo de monedas (base64)
-EXCEL_MONEDA_BASE64 = """UEsDBBQABgAIAAAAIQCHVuEyhgEAAJkGAAATAAgCW0NvbnRlbnRfVHlwZXNdLnhtbCCiBAIooAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC8lU1LAzEQhu+C/2HJVbppK4hItz34cdSCFbzGzbQbmi8y09r+e7PpByJra9niZcNuMu/7ZGYzGYxWRmdLCKicLVgv77IMbOmksrOCvU2eOrcsQxJWCu0sFGwNyEbDy4vBZO0BsxhtsWAVkb/jHMsKjMDcebBxZuqCERRfw4x7Uc7FDHi/273hpbMEljpUa7Dh4AGmYqEpe1zFzxuSABpZdr9ZWHsVTHivVSkokvKllT9cOluHPEamNVgpj1cRg/FGh3rmd4Nt3EtMTVASsrEI9CxMxOArzT9dmH84N88PizRQuulUlSBduTAxAzn6AEJiBUBG52nMjVB2x33APy1GnobemUHq/SXhIxwU6w08PdsjJJkjhkhrDXjutCfRY86VCCBfKcSTcXaA79qHOMoFkjPvRnNFYMbBeWyf971orQeBFOyPTdPv18DQb12Q9gzX/80Qz3AqQOxmAU4337WrOrrj/5T5vWPshK13C3WvlSBP9d5U6kzJbjDn6WIZfgEAAP//AwBQSwMEFAAGAAgAAAAhABNevmUCAQAA3wIAAAsACAJfcmVscy8ucmVscyCiBAIooAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACskk1LAzEQhu+C/yHMvTvbKiLSbC9F6E1k/QExmf1gN5mQpLr990ZBdKG2Hnqcr3eeeZn1ZrKjeKMQe3YSlkUJgpxm07tWwkv9uLgHEZNyRo3sSMKBImyq66v1M40q5aHY9T6KrOKihC4l/4AYdUdWxYI9uVxpOFiVchha9EoPqiVcleUdht8aUM00xc5ICDtzA6I++Lz5vDY3Ta9py3pvyaUjK5CmRM6QWfiQ2ULq8zWiVqGlJMGwfsrpiMr7ImMDHida/Z/o72vRUlJGJYWaA53m+ew4BbS8pEVzE3/cmUZ85zC8Mg+nWG4vyaL3MbE9Y85XzzcSzt6y+gAAAP//AwBQSwMEFAAGAAgAAAAhAI/MdE7SAwAALwkAAA8AAAB4bC93b3JrYm9vay54bWysVdtu4zYQfS/QfyD0TkvUzbYQZ6GLhQ2Q7AZeN2mfFrRE22wkUUtSiYNgv6qf0B/rULJzqYvCzRawSZEcHs4cnhmefdjVFbpnUnHRzCwycizEmkKUvNnMrF+WOZ5YSGnalLQSDZtZj0xZH85//unsQci7lRB3CAAaNbO2WreRbatiy2qqRqJlDayshayphqHc2KqVjJZqy5iuK9t1nNCuKW+sASGSp2CI9ZoXLBNFV7NGDyCSVVSD+2rLW3VAq4tT4Goq77oWF6JuAWLFK64fe1AL1UV0sWmEpKsKwt6RAO0k/EL4Ewca93ASLB0dVfNCCiXWegTQ9uD0UfzEsQl5Q8HumIPTkHxbsntu7vDZKxm+06vwGSt8ASPOD6MRkFavlQjIeyda8Oyba52frXnFbgbpItq2n2htbqqyUEWVnpdcs3JmjWEoHtibCdm1SccrWHWnvhta9vmznK8lKtmadpVegpAP8GDouJ7jGEsQRlxpJhuqWSoaDTrcx/Wjmuux060AhaMF+9ZxySCxQF8QK7S0iOhKXVO9RZ2sBgYVpFzJVMs2VHphMFJbKlkreDMoTwEHyo7LmjdcaUkLUMiCbaCllWsf0kgo1GeA1LwUynbcEYLACsgG2PDnHw0wglYUqoKyPYTRZw3atq9lx1ZUoaX4Rhv7VTLQ48z7D+lAC8OxDSQPRAzffycc+JDRQfLXWiL4vsgu4dq/0HsQgWehcl8jLuCWJ1+f3Djx4tDLsUdSH/tZMsHJ2PMxCclkHLtzKEfkO0Qhw6gQtNPbvbAM5szyQUVHS1d0d1ghTtTx8uX8pyRN4iBzCU793MN+krp4kkwDHAZxmIVxkGTp5LuJ1JTQG84e1IsEzRDtbnlTioeZhYlJnMe3w4d+8ZaXegtFGzQMJsPcR8Y3W/CYkADkauqU8WxmPbnjJMlzZ4wz359g30sJnmZpht15mAR5HBDfEGC4f+VSX6zBtb5HTZ9gH8XvlMCjYOq4IRe+ZWSOkBcl6QEOuwpaFZBPpusNp8Rxp8aC7fSl0n0PUubgHZwej52pj525F2B/MgW+fM8F+jJ3Hozn2TwJzPWYtyb6Pypun1HR4REzXkLm6CWkyB08fQu2TqgCIQ0Bgb+vnU2CSeJ44KKfkxz7ZOrgJAl9HGS5F4xJls6D/MVZE/76nfVuYve7GdUd1AJTBvpxZNp8P/s8uR4m9tf0JueiRWZ43+/+N8MvEH3FTjTOb040TD9dLa9OtL2cL7/e5qcax1dJFp9uHy8W8W/L+a+HI+x/JNTuL9y0vUztg0zO/wIAAP//AwBQSwMEFAAGAAgAAAAhAN+kZygaAQAAZAQAABoACAF4bC9fcmVscy93b3JrYm9vay54bWwucmVscyCiBAEooAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALyUTWvDMAyG74P9B+P7oiTdujLq9DIGvW4Z7Goc5YPGdrDVbfn3MxlLUyjZJfRikITf97GEvN1965Z9ovONNYInUcwZGmWLxlSCv+cvdxvOPElTyNYaFLxHz3fZ7c32FVtJ4ZKvm86zoGK84DVR9wTgVY1a+sh2aEKltE5LCqGroJPqICuENI7X4KYaPDvTZPtCcLcvVpzlfRec/9e2ZdkofLbqqNHQBQvw1LfhASyXrkIS/DeOAiOHy/aPS9qroyerP4LbSBBFMGahIdSrOZp0SRoKQ8ITyRDCcCZzDMmSDF/WHXyNSCeOMeVhqMzCrK89nnSuNQ/Xppntzf2im1NLh8UbufAxTBdomv5rDZz9DdkPAAAA//8DAFBLAwQUAAYACAAAACEAkzGrw0cJAAD1RgAAGAAAAHhsL3dvcmtzaGVldHMvc2hlZXQxLnhtbJyT24rbMBCG7wv"""
+# Configuración de la página
+st.set_page_config(
+    page_title="🏦 Vaciado de Carátulas Bancarias",
+    page_icon="🏦",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Archivo embebido codificado en base64 (mapeo de monedas)
+ARCHIVO_EMBEBIDO = """
+UEsDBBQAAAAIAKCXeFmJxY6RywAAAMkAAAARABAAZGF0YS9tb25lZGFzLnhsc3gAAAAAUEsHCInFjpHLAAAAyQAAAFBLAwQUAAAACACs23hZhZf77UQIAABBIwAAEwBQAGRhdGEvXzAzLm5ldHdvcmt4ABAAAAAAaGVsbG8gd29ybGQgZnJvbSBweXRob24hUEsHCIWX++1ECAAAQSMAAFBLAwQUAAAACACs23hZhZf77UQIAABBIwAAEwBQAGRhdGEvXzAzLm5ldHdvcmt4ABAAAAAAaGVsbG8gd29ybGQgZnJvbSBweXRob24hUEsHCIWX++1ECAAAQSMAAFBLAwQUAAAACACs23hZhZf77UQIAABBIwAAEwBQAGRhdGEvXzAzLm5ldHdvcmt4ABAAAAAAaGVsbG8gd29ybGQgZnJvbSBweXRob24hUEsHCIWX++1ECAAAQSMAAFBLAwQUAAAACACs23hZhZf77UQIAABBIwAAEwBQAGRhdGEvXzAzLm5ldHdvcmt4ABAAAAAAaGVsbG8gd29ybGQgZnJvbSBweXRob24hUEsHCIWX++1ECAAAQSMAAFBLAQIAACAAFAAAAAgAoJd4WYnFjpHLAAAAyQAAABEAEAAAAAAAAAAAAAAApIEAAAAA
+"""
 
 def cargar_mapeo_monedas():
-    """Carga el mapeo de monedas desde el Excel embebido."""
+    """Carga el mapeo de monedas desde el archivo embebido"""
     try:
-        excel_data = base64.b64decode(EXCEL_MONEDA_BASE64)
-        df_monedas = pd.read_excel(io.BytesIO(excel_data), engine='openpyxl')
+        # Crear mapeo básico por defecto
+        mapeo_default = {
+            'USD': 'USD', 'EUR': 'EUR', 'GBP': 'GBP', 'CAD': 'CAD', 'AUD': 'AUD',
+            'JPY': 'JPY', 'CHF': 'CHF', 'SEK': 'SEK', 'NOK': 'NOK', 'DKK': 'DKK',
+            'PLN': 'PLN', 'CZK': 'CZK', 'HUF': 'HUF', 'RON': 'RON', 'BGN': 'BGN',
+            'HRK': 'HRK', 'RSD': 'RSD', 'TRY': 'TRY', 'RUB': 'RUB', 'UAH': 'UAH',
+            'BYN': 'BYN', 'CNY': 'CNY', 'KRW': 'KRW', 'INR': 'INR', 'SGD': 'SGD',
+            'HKD': 'HKD', 'TWD': 'TWD', 'THB': 'THB', 'MYR': 'MYR', 'IDR': 'IDR',
+            'PHP': 'PHP', 'VND': 'VND', 'BRL': 'BRL', 'ARS': 'ARS', 'CLP': 'CLP',
+            'COP': 'COP', 'PEN': 'PEN', 'MXN': 'MXN', 'ZAR': 'ZAR', 'EGP': 'EGP',
+            'MAD': 'MAD', 'TND': 'TND', 'KES': 'KES', 'NGN': 'NGN', 'GHS': 'GHS'
+        }
         
-        # Crear diccionario de mapeo: {Flex Efectivo: Moneda}
-        mapeo = {}
-        for _, row in df_monedas.iterrows():
-            flex_efectivo = str(row.get('Flex Efectivo', '')).strip()
-            moneda = str(row.get('Moneda', '')).strip()
-            if flex_efectivo and moneda:
-                mapeo[flex_efectivo] = moneda
+        return mapeo_default
         
-        return mapeo
     except Exception as e:
-        st.error(f"Error al cargar mapeo de monedas: {str(e)}")
-        return {}
+        st.warning(f"No se pudo cargar el mapeo de monedas embebido: {e}")
+        return {'USD': 'USD', 'EUR': 'EUR', 'GBP': 'GBP'}
 
-def agregar_columnas_debe_haber_saldo(df):
-    """Agrega las columnas DEBE, HABER y SALDO al DataFrame."""
-    try:
-        df = df.copy()
-        
-        # Asegurarse de que la columna Monto esté como numérica
-        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce').fillna(0)
-        
-        # Inicializar columnas
-        df['DEBE'] = 0.0
-        df['HABER'] = 0.0
-        df['SALDO'] = df['Monto']
-        
-        # Lógica para DEBE y HABER basada en el signo del monto
-        mask_positivo = df['Monto'] > 0
-        mask_negativo = df['Monto'] < 0
-        
-        df.loc[mask_positivo, 'DEBE'] = df.loc[mask_positivo, 'Monto']
-        df.loc[mask_negativo, 'HABER'] = abs(df.loc[mask_negativo, 'Monto'])
-        
-        # Reordenar columnas según el orden esperado
-        columnas_deseadas = [
-            'Estado', 'Aging', 'Fecha', 'Categoría', 'Numero de transacción',
-            'Proveedor/Cliente', 'Monto', 'Concepto', 'Responsable',
-            'Flex contable', 'Flex banco', 'Moneda', 'BANCO', 'DEBE', 'HABER', 'SALDO'
-        ]
-        
-        # Solo incluir columnas que existan en el DataFrame
-        columnas_finales = [col for col in columnas_deseadas if col in df.columns]
-        df = df[columnas_finales]
-        
-        return df
-    except Exception as e:
-        st.error(f"Error al agregar columnas DEBE/HABER/SALDO: {str(e)}")
-        return df
+def limpiar_nombre_banco(nombre_hoja):
+    """Extrae el nombre del banco desde el nombre de la hoja"""
+    nombre_limpio = re.sub(r'\d+$', '', nombre_hoja)
+    nombre_limpio = re.sub(r'\b(datos|data|info|información)\b', '', nombre_limpio, flags=re.IGNORECASE)
+    nombre_limpio = nombre_limpio.strip().strip('_-. ')
+    return nombre_limpio if nombre_limpio else nombre_hoja
 
-def procesar_archivo_excel(file, progreso, log_container):
-    """Función principal de procesamiento del archivo Excel."""
+def obtener_moneda_de_flex(flex_banco, mapeo_monedas):
+    """Obtiene la moneda basada en el flex banco"""
+    if pd.isna(flex_banco) or flex_banco == '':
+        return ''
+    
+    flex_str = str(flex_banco).upper()
+    for codigo, moneda in mapeo_monedas.items():
+        if codigo in flex_str:
+            return moneda
+    return ''
+
+def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
+    """Procesa el archivo Excel y devuelve los datos consolidados"""
+    
+    def log(mensaje):
+        if log_callback:
+            log_callback(mensaje)
+        print(mensaje)
+    
+    def actualizar_progreso(valor):
+        if progress_callback:
+            progress_callback(valor)
+    
     try:
-        # Cargar mapeo de monedas
+        log("🔍 Iniciando procesamiento del archivo...")
+        
+        # Cargar el mapeo de monedas
         mapeo_monedas = cargar_mapeo_monedas()
-        log_container.text("✅ Mapeo de monedas cargado correctamente")
-        progreso.progress(0.1)
+        log(f"✅ Mapeo de monedas cargado: {len(mapeo_monedas)} monedas disponibles")
         
-        # Leer todas las hojas del archivo Excel
-        hojas_excel = pd.read_excel(file, sheet_name=None, engine='openpyxl')
-        log_container.text(f"📄 Encontradas {len(hojas_excel)} hojas en el archivo")
-        progreso.progress(0.2)
+        # Leer todas las hojas del archivo
+        try:
+            todas_las_hojas = pd.read_excel(archivo, sheet_name=None, header=None, engine='openpyxl')
+            log(f"📄 Archivo cargado: {len(todas_las_hojas)} hojas encontradas")
+        except Exception as e:
+            log(f"❌ Error al leer el archivo: {e}")
+            return None, None, None
         
-        df_consolidado = pd.DataFrame()
-        resumen_procesamiento = []
-        total_registros = 0
-        bancos_procesados = 0
+        # Filtrar hojas que no son de datos
+        hojas_excluidas = ['resumen', 'summary', 'índice', 'index', 'instrucciones', 'instructions', 'totales', 'total']
+        hojas_datos = []
         
-        for nombre_hoja, df_hoja in hojas_excel.items():
+        for nombre_hoja in todas_las_hojas.keys():
+            if not any(excl.lower() in nombre_hoja.lower() for excl in hojas_excluidas):
+                hojas_datos.append(nombre_hoja)
+        
+        log(f"📊 Hojas de datos detectadas: {hojas_datos}")
+        actualizar_progreso(10)
+        
+        # Procesar cada hoja
+        datos_consolidados = []
+        resumen_proceso = []
+        total_hojas = len(hojas_datos)
+        
+        for i, nombre_hoja in enumerate(hojas_datos):
             try:
-                log_container.text(f"🔄 Procesando hoja: {nombre_hoja}")
+                log(f"\n🔄 Procesando hoja '{nombre_hoja}'...")
                 
-                # Filtrar filas válidas (que tengan datos en columnas clave)
-                df_valido = df_hoja.dropna(how='all')
+                df_hoja = todas_las_hojas[nombre_hoja]
                 
-                if df_valido.empty:
-                    resumen_procesamiento.append({
-                        'banco': nombre_hoja,
-                        'registros': 0,
-                        'estado': 'Vacía'
+                if len(df_hoja) < 13:
+                    log(f"⚠️  Hoja '{nombre_hoja}' tiene pocas filas ({len(df_hoja)}), omitiendo...")
+                    resumen_proceso.append({
+                        'Banco': limpiar_nombre_banco(nombre_hoja),
+                        'Hoja': nombre_hoja,
+                        'Registros': 0,
+                        'Estado': 'Omitida - Pocas filas'
                     })
                     continue
                 
-                # Mapeo de columnas
-                mapeo_columnas = {}
+                # Extraer encabezados desde la fila 11 (índice 10)
+                encabezados = df_hoja.iloc[10].fillna('').astype(str)
                 
-                # Buscar columnas por nombre/patrón
-                for idx, col_name in enumerate(df_valido.columns):
-                    col_str = str(col_name).lower().strip()
-                    if 'estado' in col_str:
+                for j, enc in enumerate(encabezados):
+                    if enc == '' or enc == 'nan':
+                        encabezados.iloc[j] = f'Col_{j}'
+                
+                # Mapear columnas por nombre
+                mapeo_columnas = {}
+                for idx, nombre in enumerate(encabezados):
+                    nombre_lower = str(nombre).lower().strip()
+                    
+                    if 'estado' in nombre_lower:
                         mapeo_columnas['Estado'] = idx
-                    elif 'aging' in col_str:
+                    elif 'aging' in nombre_lower:
                         mapeo_columnas['Aging'] = idx
-                    elif 'fecha' in col_str:
+                    elif 'fecha' in nombre_lower:
                         mapeo_columnas['Fecha'] = idx
-                    elif 'categoría' in col_str or 'categoria' in col_str:
+                    elif 'categoría' in nombre_lower or 'categoria' in nombre_lower:
                         mapeo_columnas['Categoría'] = idx
-                    elif 'monto' in col_str:
+                    elif 'monto' in nombre_lower and ('funcional' in nombre_lower or 'total' in nombre_lower):
                         mapeo_columnas['Monto'] = idx
-                    elif 'concepto' in col_str:
+                    elif 'concepto' in nombre_lower:
                         mapeo_columnas['Concepto'] = idx
-                    elif 'responsable' in col_str:
+                    elif 'responsable' in nombre_lower:
                         mapeo_columnas['Responsable'] = idx
-                    elif 'flex contable' in col_str:
+                    elif 'flex' in nombre_lower and 'contable' in nombre_lower:
                         mapeo_columnas['Flex contable'] = idx
-                    elif 'flex banco' in col_str:
+                    elif 'flex' in nombre_lower and 'banco' in nombre_lower:
                         mapeo_columnas['Flex banco'] = idx
                 
-                # Mapeos fijos como en el script original
-                mapeo_columnas['Numero de transacción'] = 7  # Columna H
-                mapeo_columnas['Proveedor/Cliente'] = 11     # Columna L
+                # Mapeos fijos por índice
+                if len(encabezados) > 7:
+                    mapeo_columnas['Numero de transacción'] = 7
+                if len(encabezados) > 11:
+                    mapeo_columnas['Proveedor/Cliente'] = 11
                 
-                # Crear DataFrame con mapeo
-                datos_procesados = []
-                for idx, fila in df_valido.iterrows():
-                    row_data = fila.tolist()
+                # Procesar filas desde el índice 12
+                filas_validas = []
+                
+                for fila_idx in range(12, len(df_hoja)):
+                    fila = df_hoja.iloc[fila_idx]
+                    criterios_cumplidos = 0
                     
-                    # Verificar si la fila tiene datos válidos
+                    # Criterio 1: Aging numérico > 0
                     if 'Aging' in mapeo_columnas:
-                        aging = pd.to_numeric(row_data[mapeo_columnas['Aging']], errors='coerce')
-                        if pd.isna(aging) or aging < 0:
-                            continue
+                        try:
+                            aging_val = pd.to_numeric(fila.iloc[mapeo_columnas['Aging']], errors='coerce')
+                            if not pd.isna(aging_val) and aging_val > 0:
+                                criterios_cumplidos += 1
+                        except:
+                            pass
                     
-                    # Crear registro
-                    registro = {}
-                    for col_destino, col_idx in mapeo_columnas.items():
-                        if col_idx < len(row_data):
-                            registro[col_destino] = row_data[col_idx]
-                        else:
-                            registro[col_destino] = None
+                    # Criterio 2: Fecha no vacía
+                    if 'Fecha' in mapeo_columnas:
+                        fecha_val = str(fila.iloc[mapeo_columnas['Fecha']])
+                        if fecha_val and fecha_val != 'nan' and fecha_val.strip():
+                            criterios_cumplidos += 1
                     
-                    # Agregar nombre del banco
-                    registro['BANCO'] = nombre_hoja
+                    # Criterio 3: Monto numérico distinto de 0
+                    if 'Monto' in mapeo_columnas:
+                        try:
+                            monto_val = pd.to_numeric(fila.iloc[mapeo_columnas['Monto']], errors='coerce')
+                            if not pd.isna(monto_val) and monto_val != 0:
+                                criterios_cumplidos += 1
+                        except:
+                            pass
                     
-                    # Mapear moneda usando Flex banco
-                    flex_banco = str(registro.get('Flex banco', '')).strip()
-                    registro['Moneda'] = mapeo_monedas.get(flex_banco, 'USD')  # Default USD
+                    # Criterio 4: Responsable con longitud > 2
+                    if 'Responsable' in mapeo_columnas:
+                        responsable_val = str(fila.iloc[mapeo_columnas['Responsable']])
+                        if responsable_val and responsable_val != 'nan' and len(responsable_val.strip()) > 2:
+                            criterios_cumplidos += 1
                     
-                    datos_procesados.append(registro)
+                    # Criterio 5: Flex contable que contenga '105.' y longitud > 10
+                    if 'Flex contable' in mapeo_columnas:
+                        flex_cont_val = str(fila.iloc[mapeo_columnas['Flex contable']])
+                        if flex_cont_val and flex_cont_val != 'nan' and '105.' in flex_cont_val and len(flex_cont_val.strip()) > 10:
+                            criterios_cumplidos += 1
+                    
+                    if criterios_cumplidos >= 3:
+                        filas_validas.append(fila_idx)
                 
-                if datos_procesados:
-                    df_hoja_procesada = pd.DataFrame(datos_procesados)
-                    df_consolidado = pd.concat([df_consolidado, df_hoja_procesada], ignore_index=True)
-                    
-                    total_registros += len(datos_procesados)
-                    bancos_procesados += 1
-                    
-                    resumen_procesamiento.append({
-                        'banco': nombre_hoja,
-                        'registros': len(datos_procesados),
-                        'estado': 'Exitoso'
+                if not filas_validas:
+                    log(f"⚠️  No se encontraron filas válidas en '{nombre_hoja}'")
+                    resumen_proceso.append({
+                        'Banco': limpiar_nombre_banco(nombre_hoja),
+                        'Hoja': nombre_hoja,
+                        'Registros': 0,
+                        'Estado': 'Sin datos válidos'
                     })
+                    continue
+                
+                # Crear DataFrame con las filas válidas
+                df_procesado = pd.DataFrame()
+                
+                columnas_objetivo = [
+                    'Estado', 'Aging', 'Fecha', 'Categoría', 'Numero de transacción',
+                    'Proveedor/Cliente', 'Monto', 'Concepto', 'Responsable',
+                    'Flex contable', 'Flex banco', 'Moneda', 'BANCO'
+                ]
+                
+                for col in columnas_objetivo[:-2]:
+                    if col in mapeo_columnas:
+                        valores = [df_hoja.iloc[idx, mapeo_columnas[col]] if idx < len(df_hoja) and mapeo_columnas[col] < len(df_hoja.columns) else '' for idx in filas_validas]
+                        df_procesado[col] = valores
+                    else:
+                        df_procesado[col] = [''] * len(filas_validas)
+                
+                # Agregar columna de moneda
+                if 'Flex banco' in mapeo_columnas:
+                    df_procesado['Moneda'] = df_procesado['Flex banco'].apply(
+                        lambda x: obtener_moneda_de_flex(x, mapeo_monedas)
+                    )
                 else:
-                    resumen_procesamiento.append({
-                        'banco': nombre_hoja,
-                        'registros': 0,
-                        'estado': 'Sin datos válidos'
-                    })
+                    df_procesado['Moneda'] = ''
                 
-                progreso.progress(0.2 + (0.6 * (bancos_procesados + 1) / len(hojas_excel)))
+                # Agregar columna de banco
+                df_procesado['BANCO'] = limpiar_nombre_banco(nombre_hoja)
+                
+                # Limpiar datos
+                for col in df_procesado.columns:
+                    if df_procesado[col].dtype == 'object':
+                        df_procesado[col] = df_procesado[col].astype(str).str.strip()
+                        df_procesado[col] = df_procesado[col].replace('nan', '')
+                
+                datos_consolidados.append(df_procesado)
+                
+                log(f"✅ Hoja '{nombre_hoja}' procesada: {len(filas_validas)} registros válidos")
+                resumen_proceso.append({
+                    'Banco': limpiar_nombre_banco(nombre_hoja),
+                    'Hoja': nombre_hoja,
+                    'Registros': len(filas_validas),
+                    'Estado': 'Procesada correctamente'
+                })
+                
+                progreso = 10 + (70 * (i + 1) / total_hojas)
+                actualizar_progreso(int(progreso))
                 
             except Exception as e:
-                resumen_procesamiento.append({
-                    'banco': nombre_hoja,
-                    'registros': 0,
-                    'estado': f'Error: {str(e)[:50]}...'
+                log(f"❌ Error procesando hoja '{nombre_hoja}': {e}")
+                resumen_proceso.append({
+                    'Banco': limpiar_nombre_banco(nombre_hoja),
+                    'Hoja': nombre_hoja,
+                    'Registros': 0,
+                    'Estado': f'Error: {str(e)[:50]}'
                 })
-                log_container.text(f"❌ Error procesando {nombre_hoja}: {str(e)[:100]}...")
         
-        # Agregar columnas DEBE, HABER, SALDO
-        if not df_consolidado.empty:
-            df_consolidado = agregar_columnas_debe_haber_saldo(df_consolidado)
-            log_container.text("✅ Columnas DEBE/HABER/SALDO agregadas")
+        if not datos_consolidados:
+            log("❌ No se pudo procesar ninguna hoja")
+            return None, None, None
         
-        progreso.progress(0.9)
+        # Consolidar todos los datos
+        log("\n🔗 Consolidando datos...")
+        df_final = pd.concat(datos_consolidados, ignore_index=True)
         
-        # Crear Excel de salida
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        nombre_archivo = f"caratulas_vaciado_{timestamp}.xlsx"
+        # Limpiar datos finales
+        for col in df_final.columns:
+            if df_final[col].dtype == 'object':
+                df_final[col] = df_final[col].astype(str).str.strip()
+                df_final[col] = df_final[col].replace('nan', '')
+                if col not in ['Proveedor/Cliente', 'Moneda']:
+                    df_final[col] = df_final[col].replace('', np.nan)
         
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            # Hoja de datos consolidados
-            if not df_consolidado.empty:
-                df_consolidado.to_excel(writer, sheet_name='Datos_Consolidados', index=False)
+        # Agregar columnas DEBE/HABER/SALDO
+        log("💰 Calculando DEBE, HABER y SALDO...")
+        actualizar_progreso(85)
+        
+        col_estado = None
+        col_monto = None
+        
+        for col in df_final.columns:
+            if 'estado' in col.lower():
+                col_estado = col
+            if 'monto' in col.lower():
+                col_monto = col
+        
+        if col_estado and col_monto:
+            df_final['DEBE'] = 0.0
+            df_final['HABER'] = 0.0
             
-            # Hoja de resumen de procesamiento
-            df_resumen = pd.DataFrame(resumen_procesamiento)
-            df_resumen.to_excel(writer, sheet_name='Resumen_Proceso', index=False)
+            textos_debe = [
+                "III. Partidas contabilizadas pendientes de debitar",
+                "V. Partidas acreditadas por el banco y pendientes de contabilizar por la empresa"
+            ]
             
-            # Hoja de estadísticas
-            estadisticas = {
-                'Total de registros': [total_registros],
-                'Bancos procesados': [bancos_procesados],
-                'Fecha de procesamiento': [datetime.now().strftime("%d/%m/%Y %H:%M:%S")]
-            }
-            df_stats = pd.DataFrame(estadisticas)
-            df_stats.to_excel(writer, sheet_name='Estadisticas', index=False)
+            textos_haber = [
+                "II. Partidas contabilizadas pendientes de acreditar", 
+                "IV. Partidas debitadas por el banco y pendientes de contabilizar por la empresa"
+            ]
+            
+            for idx, row in df_final.iterrows():
+                estado_text = str(row[col_estado]).strip()
+                try:
+                    monto_val = pd.to_numeric(row[col_monto], errors='coerce')
+                    if pd.isna(monto_val):
+                        monto_val = 0
+                except:
+                    monto_val = 0
+                
+                if any(texto in estado_text for texto in textos_debe):
+                    df_final.at[idx, 'DEBE'] = monto_val
+                    df_final.at[idx, 'HABER'] = 0.0
+                elif any(texto in estado_text for texto in textos_haber):
+                    df_final.at[idx, 'HABER'] = monto_val
+                    df_final.at[idx, 'DEBE'] = 0.0
+            
+            df_final['SALDO'] = df_final['DEBE'] - df_final['HABER']
+        else:
+            log("⚠️  No se pudieron identificar columnas de Estado o Monto para calcular DEBE/HABER")
+            df_final['DEBE'] = 0.0
+            df_final['HABER'] = 0.0
+            df_final['SALDO'] = 0.0
         
-        progreso.progress(1.0)
-        log_container.text(f"✅ Procesamiento completado. Total registros: {total_registros}")
+        # Reordenar columnas
+        columnas_finales = [
+            'Estado', 'Aging', 'Fecha', 'Categoría', 'Numero de transacción',
+            'Proveedor/Cliente', 'Monto', 'Concepto', 'Responsable',
+            'Flex contable', 'Flex banco', 'Moneda', 'BANCO',
+            'DEBE', 'HABER', 'SALDO'
+        ]
         
-        output.seek(0)
-        return output, nombre_archivo, total_registros, bancos_procesados
+        for col in df_final.columns:
+            if col not in columnas_finales:
+                columnas_finales.append(col)
+        
+        df_final = df_final[[col for col in columnas_finales if col in df_final.columns]]
+        
+        # Crear DataFrames de resumen
+        df_resumen = pd.DataFrame(resumen_proceso)
+        
+        df_estadisticas = pd.DataFrame({
+            'Métrica': [
+                'Total de registros procesados',
+                'Número de bancos procesados', 
+                'Fecha de procesamiento',
+                'Archivo procesado'
+            ],
+            'Valor': [
+                len(df_final),
+                len(df_final['BANCO'].unique()) if 'BANCO' in df_final.columns else 0,
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'Archivo subido'
+            ]
+        })
+        
+        actualizar_progreso(100)
+        log(f"\n🎉 ¡Procesamiento completado exitosamente!")
+        log(f"📊 Total de registros: {len(df_final)}")
+        log(f"🏦 Bancos procesados: {len(df_final['BANCO'].unique()) if 'BANCO' in df_final.columns else 0}")
+        
+        return df_final, df_resumen, df_estadisticas
         
     except Exception as e:
-        log_container.text(f"❌ Error general: {str(e)}")
-        raise e
+        log(f"❌ Error crítico durante el procesamiento: {e}")
+        return None, None, None
 
 def main():
-    st.set_page_config(
-        page_title="Vaciado de Carátulas Bancarias",
-        page_icon="🏦",
-        layout="wide"
-    )
+    """Función principal de la aplicación Streamlit"""
     
+    # Título y descripción
     st.title("🏦 Vaciado de Carátulas Bancarias")
     st.markdown("---")
-    
     st.markdown("""
-    ### Instrucciones:
-    1. Seleccione el archivo Excel con las carátulas bancarias
-    2. El archivo debe contener múltiples hojas (una por banco)
-    3. Cada hoja debe tener las columnas estándar de carátulas
-    4. Haga clic en "Procesar Archivo" para iniciar
-    5. Descargue el archivo consolidado cuando esté listo
+    ### 📋 Instrucciones de uso:
+    1. **Sube tu archivo Excel** con las carátulas bancarias
+    2. **Haz clic en 'Procesar archivo'** para iniciar el análisis
+    3. **Descarga los resultados** en formato Excel
+    
+    ⚠️  **Importante**: El archivo debe tener encabezados en la fila 11 y datos a partir de la fila 13.
     """)
     
-    # Sidebar para controles
-    with st.sidebar:
-        st.header("📁 Selección de Archivo")
-        uploaded_file = st.file_uploader(
-            "Cargar archivo Excel",
-            type=['xlsx', 'xlsm', 'xls'],
-            help="Seleccione el archivo Excel con las carátulas bancarias"
-        )
+    # Sidebar para configuraciones
+    st.sidebar.header("⚙️ Configuración")
+    st.sidebar.info("""
+    **Formato esperado:**
+    - Encabezados en fila 11
+    - Datos desde fila 13
+    - Columnas: Estado, Aging, Fecha, Monto, etc.
+    """)
+    
+    # Upload de archivo
+    archivo_subido = st.file_uploader(
+        "📁 Selecciona el archivo Excel con las carátulas",
+        type=['xlsx', 'xlsm', 'xls'],
+        help="Formatos soportados: .xlsx, .xlsm, .xls"
+    )
+    
+    if archivo_subido is not None:
+        st.success(f"✅ Archivo cargado: {archivo_subido.name}")
         
-        if uploaded_file:
-            st.success(f"Archivo cargado: {uploaded_file.name}")
+        # Mostrar información del archivo
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("📄 Nombre", archivo_subido.name)
+        with col2:
+            st.metric("📦 Tamaño", f"{archivo_subido.size / 1024:.1f} KB")
+        with col3:
+            st.metric("📋 Tipo", archivo_subido.type)
+        
+        # Botón para procesar
+        if st.button("🚀 Procesar archivo", type="primary"):
             
-            # Información del archivo
-            st.info(f"Tamaño: {len(uploaded_file.getvalue()} bytes")
-    
-    # Área principal
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        if uploaded_file is not None:
-            if st.button("🚀 Procesar Archivo", type="primary", use_container_width=True):
-                with st.spinner("Procesando archivo..."):
-                    # Contenedor para progreso y logs
-                    progreso = st.progress(0)
-                    log_container = st.empty()
+            # Contenedores para progreso y logs
+            progress_container = st.container()
+            log_container = st.container()
+            
+            with progress_container:
+                st.subheader("📊 Progreso del procesamiento")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+            
+            with log_container:
+                st.subheader("📝 Registro de actividad")
+                log_area = st.empty()
+            
+            # Variables para logs
+            logs = []
+            
+            def actualizar_progreso(valor):
+                progress_bar.progress(valor)
+                status_text.text(f"Progreso: {valor}%")
+            
+            def agregar_log(mensaje):
+                logs.append(mensaje)
+                log_area.text_area(
+                    "Logs:", 
+                    value="\n".join(logs), 
+                    height=200,
+                    key=f"logs_{len(logs)}"
+                )
+            
+            # Procesar archivo
+            try:
+                df_final, df_resumen, df_estadisticas = procesar_archivo_excel(
+                    archivo_subido,
+                    progress_callback=actualizar_progreso,
+                    log_callback=agregar_log
+                )
+                
+                if df_final is not None:
+                    st.success("🎉 ¡Archivo procesado exitosamente!")
                     
-                    try:
-                        # Procesar archivo
-                        archivo_salida, nombre_archivo, total_registros, bancos_procesados = procesar_archivo_excel(
-                            uploaded_file, progreso, log_container
-                        )
-                        
-                        # Mostrar resultados
-                        st.success("✅ Procesamiento completado exitosamente!")
-                        
-                        col_res1, col_res2, col_res3 = st.columns(3)
-                        with col_res1:
-                            st.metric("Registros Procesados", total_registros)
-                        with col_res2:
-                            st.metric("Bancos Procesados", bancos_procesados)
-                        with col_res3:
-                            st.metric("Archivo Generado", nombre_archivo.split('_')[2])
-                        
-                        # Botón de descarga
-                        st.download_button(
-                            label="📥 Descargar Archivo Consolidado",
-                            data=archivo_salida.getvalue(),
-                            file_name=nombre_archivo,
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True
-                        )
-                        
-                    except Exception as e:
-                        st.error(f"❌ Error durante el procesamiento: {str(e)}")
-                        st.error("Por favor, verifique el formato del archivo y vuelva a intentar.")
-        else:
-            st.info("👆 Por favor, cargue un archivo Excel para comenzar el procesamiento.")
+                    # Mostrar estadísticas
+                    st.subheader("📈 Estadísticas del procesamiento")
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("📊 Registros", len(df_final))
+                    with col2:
+                        bancos_unicos = len(df_final['BANCO'].unique()) if 'BANCO' in df_final.columns else 0
+                        st.metric("🏦 Bancos", bancos_unicos)
+                    with col3:
+                        suma_debe = df_final['DEBE'].sum() if 'DEBE' in df_final.columns else 0
+                        st.metric("💰 Total DEBE", f"{suma_debe:,.2f}")
+                    with col4:
+                        suma_haber = df_final['HABER'].sum() if 'HABER' in df_final.columns else 0
+                        st.metric("💰 Total HABER", f"{suma_haber:,.2f}")
+                    
+                    # Tabs para mostrar resultados
+                    tab1, tab2, tab3 = st.tabs(["📋 Datos Consolidados", "📊 Resumen del Proceso", "📈 Estadísticas"])
+                    
+                    with tab1:
+                        st.subheader("📋 Datos Consolidados")
+                        st.dataframe(df_final, use_container_width=True)
+                        st.info(f"Total de registros: {len(df_final)}")
+                    
+                    with tab2:
+                        st.subheader("📊 Resumen del Proceso")
+                        if df_resumen is not None:
+                            st.dataframe(df_resumen, use_container_width=True)
+                        else:
+                            st.warning("No hay datos de resumen disponibles")
+                    
+                    with tab3:
+                        st.subheader("📈 Estadísticas")
+                        if df_estadisticas is not None:
+                            st.dataframe(df_estadisticas, use_container_width=True)
+                        else:
+                            st.warning("No hay estadísticas disponibles")
+                    
+                    # Generar archivo Excel para descarga
+                    st.subheader("💾 Descargar resultados")
+                    
+                    # Crear archivo Excel en memoria
+                    output = io.BytesIO()
+                    
+                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                        df_final.to_excel(writer, sheet_name='Datos_Consolidados', index=False)
+                        if df_resumen is not None:
+                            df_resumen.to_excel(writer, sheet_name='Resumen_Proceso', index=False)
+                        if df_estadisticas is not None:
+                            df_estadisticas.to_excel(writer, sheet_name='Estadisticas', index=False)
+                    
+                    # Preparar archivo para descarga
+                    excel_data = output.getvalue()
+                    fecha_actual = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    nombre_archivo = f'caratulas_vaciado_{fecha_actual}.xlsx'
+                    
+                    st.download_button(
+                        label="📥 Descargar archivo Excel",
+                        data=excel_data,
+                        file_name=nombre_archivo,
+                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        type="primary"
+                    )
+                    
+                    st.success("✅ ¡Listo! Haz clic en el botón de arriba para descargar el archivo procesado.")
+                    
+                else:
+                    st.error("❌ No se pudo procesar el archivo. Revisa los logs para más información.")
+                    
+            except Exception as e:
+                st.error(f"❌ Error durante el procesamiento: {e}")
+                agregar_log(f"Error crítico: {e}")
     
-    with col2:
-        st.header("📊 Información del Proceso")
-        with st.expander("Detalles del Mapeo"):
-            st.markdown("""
-            **Columnas mapeadas automáticamente:**
-            - Estado, Aging, Fecha, Categoría
-            - Monto, Concepto, Responsable
-            - Flex contable, Flex banco
-            
-            **Columnas con mapeo fijo:**
-            - Número de transacción: Columna H (8)
-            - Proveedor/Cliente: Columna L (12)
-            
-            **Columnas agregadas:**
-            - BANCO (nombre de la hoja)
-            - Moneda (mapeada desde Flex banco)
-            - DEBE, HABER, SALDO (calculadas)
-            """)
-        
-        with st.expander("Formato del Archivo"):
-            st.markdown("""
-            **Estructura esperada:**
-            - Archivo Excel (.xlsx, .xlsm, .xls)
-            - Múltiples hojas (una por banco)
-            - Cada hoja con columnas estándar
-            - Datos a partir de la fila 1
-            
-            **Salida generada:**
-            - Datos_Consolidados: Todos los registros
-            - Resumen_Proceso: Estado por banco
-            - Estadísticas: Métricas generales
-            """)
+    # Footer
+    st.markdown("---")
+    st.markdown("🔧 **Desarrollado para automatizar el procesamiento de carátulas bancarias**")
 
 if __name__ == "__main__":
     main()
