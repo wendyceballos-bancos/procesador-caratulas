@@ -1,4 +1,4 @@
-# 🏦 Procesador de Carátulas Bancarias
+# 🏦 Vaciado Automático - Carátulas Bancarias
 
 Aplicación web para procesar carátulas bancarias de múltiples bancos y monedas.
 
