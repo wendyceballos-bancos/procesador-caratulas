@@ -324,7 +324,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                 columnas_objetivo = [
                     'Estado', 'Aging', 'Fecha', 'Fecha transacción', 'Categoría', 
                     'Numero de transacción', 'Proveedor/Cliente', 'Monto', 'Concepto', 
-                    'Responsable', 'Flex contable', 'Flex banco', 'Tipo extracto',
+                    'Responsable', 'Flex contable', 'Flex banco',
                     'Moneda', 'BANCO'
                 ]
                 
@@ -501,7 +501,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
         columnas_finales = [
             'Estado', 'Aging', 'Fecha', 'Fecha transacción', 'Categoría', 
             'Numero de transacción', 'Proveedor/Cliente', 'Monto', 'Concepto', 
-            'Responsable', 'Flex contable', 'Flex banco', 'Tipo extracto',
+            'Responsable', 'Flex contable', 'Flex banco',
             'Moneda', 'BANCO', 'DEBE', 'HABER', 'SALDO'
         ]
         
