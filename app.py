@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 
 # Configuración de la página
 st.set_page_config(
-    page_title="🏦 Vaciado de Carátulas Bancarias - Despegar",
+    page_title="Vaciado de Carátulas Bancarias - Despegar",
     page_icon="🏦",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -30,7 +30,7 @@ def mostrar_header_con_logo():
              style="height: 80px; margin-right: 25px;">
         <div>
             <h1 style="color: #1e3a8a; margin: 0; font-size: 2.5rem; font-weight: 700;">
-                🏦 Vaciado de Carátulas Bancarias
+                Vaciado de Carátulas Bancarias
             </h1>
             <p style="color: #475569; margin: 5px 0 0 0; font-size: 1.1rem; font-weight: 400;">
                 Automatización de procesamiento financiero - Powered by Despegar
@@ -575,13 +575,7 @@ def main():
     3. **Descarga los resultados** en formato Excel
     
     ⚠️  **Importante**: El archivo debe tener encabezados en la fila 11 y datos a partir de la fila 13.
-    
-    ✨ **Actualizaciones**:
-    - 📅 Fechas sin hora (formato YYYY-MM-DD)
-    - 💱 **Mapeo de monedas actualizado** con 136 entradas
-    - 🎯 Monedas soportadas: USD, EUR, PEN, CLP, BRL, MXN, ARS, COP, UYU
-    - 🔧 **Corrección de error**: Compatible con todos los tipos de fecha
-    - ✨ **Powered by Despegar** - Tecnología corporativa
+
     """)
     
     # Sidebar con información del mapeo
