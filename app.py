@@ -784,17 +784,12 @@ def main():
                     # Generar archivo Excel para descarga
                     st.subheader("💾 Descargar resultados")
                     
-                    # Crear archivo Excel en memoria
+                    # Crear archivo Excel en memoria - SOLO DATOS CONSOLIDADOS
                     output = io.BytesIO()
                     
                     with pd.ExcelWriter(output, engine='openpyxl') as writer:
                         df_final.to_excel(writer, sheet_name='Datos_Consolidados', index=False)
-                        if df_resumen is not None:
-                            df_resumen.to_excel(writer, sheet_name='Resumen_Proceso', index=False)
-                        if df_estadisticas is not None:
-                            df_estadisticas.to_excel(writer, sheet_name='Estadisticas', index=False)
-                        if df_monedas is not None and len(df_monedas) > 0:
-                            df_monedas.to_excel(writer, sheet_name='Analisis_Monedas', index=False)
+                        # Solo se incluye la hoja principal según solicitud del usuario
                     
                     # Preparar archivo para descarga
                     excel_data = output.getvalue()
