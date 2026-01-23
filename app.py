@@ -5,7 +5,7 @@ import numpy as np
 import base64
 import io
 import os
-from datetime import datetime
+from datetime import datetime, date
 import warnings
 import re
 
@@ -29,7 +29,8 @@ def cargar_mapeo_monedas():
         'BYN': 'BYN', 'CNY': 'CNY', 'KRW': 'KRW', 'INR': 'INR', 'SGD': 'SGD',
         'HKD': 'HKD', 'TWD': 'TWD', 'THB': 'THB', 'MYR': 'MYR', 'IDR': 'IDR',
         'PHP': 'PHP', 'VND': 'VND', 'BRL': 'BRL', 'ARS': 'ARS', 'CLP': 'CLP',
-        'COP': 'COP', 'PEN': 'PEN', 'MXN': 'MXN', 'ZAR': 'ZAR', 'EGP': 'EGP'
+        'COP': 'COP', 'PEN': 'PEN', 'MXN': 'MXN', 'ZAR': 'ZAR', 'EGP': 'EGP',
+        'MAD': 'MAD', 'TND': 'TND', 'KES': 'KES', 'NGN': 'NGN', 'GHS': 'GHS'
     }
     return mapeo_default
 
@@ -50,6 +51,52 @@ def obtener_moneda_de_flex(flex_banco, mapeo_monedas):
         if codigo in flex_str:
             return moneda
     return ''
+
+def normalizar_fecha_sin_hora(fecha_value):
+    """
+    Normaliza diferentes tipos de fecha para eliminar la hora y dejar solo la fecha
+    Basado en los cambios del script PyCharm modificado
+    """
+    try:
+        # Si es None o NaN, devolver cadena vacía
+        if pd.isna(fecha_value) or fecha_value is None:
+            return ''
+        
+        # Si ya es un objeto date (sin hora)
+        if hasattr(fecha_value, 'date') and callable(fecha_value.date):
+            return fecha_value.date().strftime('%Y-%m-%d')
+        
+        # Si es un timestamp de pandas o datetime con strftime
+        if hasattr(fecha_value, 'strftime'):
+            return fecha_value.strftime('%Y-%m-%d')
+        
+        # Si es string, intentar parsearlo y extraer solo la fecha
+        fecha_str = str(fecha_value).strip()
+        
+        # Si contiene espacio (probablemente fecha + hora)
+        if ' ' in fecha_str and fecha_str != 'nan':
+            try:
+                fecha_parseada = pd.to_datetime(fecha_str, errors='coerce')
+                if not pd.isna(fecha_parseada):
+                    return fecha_parseada.strftime('%Y-%m-%d')
+            except:
+                pass
+        
+        # Si no contiene espacio, intentar parsearlo directamente
+        if fecha_str and fecha_str != 'nan':
+            try:
+                fecha_parseada = pd.to_datetime(fecha_str, errors='coerce')
+                if not pd.isna(fecha_parseada):
+                    return fecha_parseada.strftime('%Y-%m-%d')
+            except:
+                pass
+        
+        # Si llegamos aquí, devolver la cadena original limpia
+        return fecha_str if fecha_str != 'nan' else ''
+    
+    except Exception:
+        # En caso de cualquier error, devolver cadena vacía
+        return ''
 
 def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
     """Procesa el archivo Excel y devuelve los datos consolidados"""
@@ -78,8 +125,8 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
             log(f"❌ Error al leer el archivo: {e}")
             return None, None, None
         
-        # Filtrar hojas que no son de datos
-        hojas_excluidas = ['resumen', 'summary', 'índice', 'index', 'instrucciones', 'instructions', 'totales', 'total']
+        # Filtrar hojas que no son de datos (detección automática mejorada)
+        hojas_excluidas = ['resumen', 'summary', 'índice', 'index', 'instrucciones', 'instructions', 'totales', 'total', 'config', 'configuración']
         hojas_datos = []
         
         for nombre_hoja in todas_las_hojas.keys():
@@ -110,9 +157,10 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                     })
                     continue
                 
-                # Extraer encabezados desde la fila 11 (índice 10)
+                # Extraer encabezados desde la fila 11 (índice 10) - igual que en PyCharm
                 encabezados = df_hoja.iloc[10].fillna('').astype(str)
                 
+                # Completar encabezados vacíos
                 for j, enc in enumerate(encabezados):
                     if enc == '' or enc == 'nan':
                         encabezados.iloc[j] = f'Col_{j}'
@@ -145,7 +193,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                     elif 'tipo' in nombre_lower and 'extracto' in nombre_lower:
                         mapeo_columnas['Tipo extracto'] = idx
                 
-                # Mapeos fijos por índice
+                # Mapeos fijos por índice (igual que en PyCharm)
                 if len(encabezados) > 7:
                     mapeo_columnas['Numero de transacción'] = 7
                 if len(encabezados) > 11:
@@ -153,7 +201,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                 
                 log(f"📋 Columnas mapeadas: {list(mapeo_columnas.keys())}")
                 
-                # Procesar filas desde el índice 12
+                # Procesar filas desde el índice 12 (igual que en PyCharm)
                 filas_validas = []
                 
                 for fila_idx in range(12, len(df_hoja)):
@@ -201,6 +249,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                         if flex_cont_val and flex_cont_val != 'nan' and '105.' in flex_cont_val and len(flex_cont_val.strip()) > 10:
                             criterios_cumplidos += 1
                     
+                    # Incluir fila si cumple al menos 3 criterios (igual que en PyCharm)
                     if criterios_cumplidos >= 3:
                         filas_validas.append(fila_idx)
                 
@@ -242,7 +291,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                 # Agregar columna de banco
                 df_procesado['BANCO'] = limpiar_nombre_banco(nombre_hoja)
                 
-                # Limpiar datos
+                # Limpiar datos (igual que en PyCharm)
                 for col in df_procesado.columns:
                     if df_procesado[col].dtype == 'object':
                         df_procesado[col] = df_procesado[col].astype(str).str.strip()
@@ -258,7 +307,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                     'Estado': 'Procesada correctamente'
                 })
                 
-                progreso = 10 + (70 * (i + 1) / total_hojas)
+                progreso = 10 + (60 * (i + 1) / total_hojas)
                 actualizar_progreso(int(progreso))
                 
             except Exception as e:
@@ -277,18 +326,34 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
         # Consolidar todos los datos
         log("\n🔗 Consolidando datos...")
         df_final = pd.concat(datos_consolidados, ignore_index=True)
+        actualizar_progreso(75)
         
-        # Limpiar datos finales
+        # Limpiar datos finales (igual que en PyCharm)
         for col in df_final.columns:
             if df_final[col].dtype == 'object':
                 df_final[col] = df_final[col].astype(str).str.strip()
                 df_final[col] = df_final[col].replace('nan', '')
+                # Convertir strings vacíos a NaN excepto para ciertas columnas
                 if col not in ['Proveedor/Cliente', 'Moneda']:
                     df_final[col] = df_final[col].replace('', np.nan)
         
+        # APLICAR NORMALIZACIÓN DE FECHAS SIN HORA (nuevo cambio del PyCharm)
+        log("📅 Normalizando fechas sin hora...")
+        if 'Fecha' in df_final.columns:
+            fechas_procesadas = 0
+            for idx in df_final.index:
+                fecha_original = df_final.at[idx, 'Fecha']
+                fecha_normalizada = normalizar_fecha_sin_hora(fecha_original)
+                df_final.at[idx, 'Fecha'] = fecha_normalizada
+                if fecha_normalizada:
+                    fechas_procesadas += 1
+            
+            log(f"✅ Fechas normalizadas: {fechas_procesadas} registros procesados")
+        
+        actualizar_progreso(85)
+        
         # Agregar columnas DEBE/HABER/SALDO
         log("💰 Calculando DEBE, HABER y SALDO...")
-        actualizar_progreso(85)
         
         col_estado = None
         col_monto = None
@@ -407,7 +472,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                 f"{df_final['DEBE'].sum():,.2f}" if 'DEBE' in df_final.columns else 0,
                 f"{df_final['HABER'].sum():,.2f}" if 'HABER' in df_final.columns else 0,
                 f"{df_final['SALDO'].sum():,.2f}" if 'SALDO' in df_final.columns else 0,
-                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                datetime.now().strftime('%d/%m/%Y %H:%M:%S'),  # Igual que en PyCharm
                 'Archivo subido'
             ]
         })
@@ -419,6 +484,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
         log(f"💰 Total DEBE: {df_final['DEBE'].sum():,.2f}")
         log(f"💰 Total HABER: {df_final['HABER'].sum():,.2f}")
         log(f"💰 SALDO: {df_final['SALDO'].sum():,.2f}")
+        log(f"📅 Fechas normalizadas sin hora aplicadas")
         
         return df_final, df_resumen, df_estadisticas
         
@@ -439,6 +505,8 @@ def main():
     3. **Descarga los resultados** en formato Excel
     
     ⚠️  **Importante**: El archivo debe tener encabezados en la fila 11 y datos a partir de la fila 13.
+    
+    ✨ **Nuevo**: Las fechas se procesan automáticamente **sin hora** (formato YYYY-MM-DD)
     """)
     
     # Sidebar para configuraciones
@@ -448,6 +516,11 @@ def main():
     - Encabezados en fila 11
     - Datos desde fila 13
     - Columnas: Estado, Aging, Fecha, Monto, etc.
+    
+    **Nuevo procesamiento de fechas:**
+    - Elimina automáticamente la hora
+    - Formato estándar: YYYY-MM-DD
+    - Compatible con múltiples formatos de entrada
     """)
     
     # Upload de archivo
@@ -537,8 +610,14 @@ def main():
                     else:
                         st.info(f"💰 **SALDO FINAL: $0.00** (Balanceado)")
                     
+                    # Mostrar información sobre fechas procesadas
+                    if 'Fecha' in df_final.columns:
+                        fechas_con_datos = df_final[df_final['Fecha'].notna() & (df_final['Fecha'] != '')]['Fecha']
+                        if len(fechas_con_datos) > 0:
+                            st.info(f"📅 **Fechas normalizadas**: {len(fechas_con_datos)} registros procesados sin hora")
+                    
                     # Tabs para mostrar resultados
-                    tab1, tab2, tab3 = st.tabs(["📋 Datos Consolidados", "📊 Resumen del Proceso", "📈 Estadísticas"])
+                    tab1, tab2, tab3, tab4 = st.tabs(["📋 Datos Consolidados", "📅 Vista de Fechas", "📊 Resumen del Proceso", "📈 Estadísticas"])
                     
                     with tab1:
                         st.subheader("📋 Datos Consolidados")
@@ -551,20 +630,48 @@ def main():
                         
                         if len(debe_registros) > 0:
                             st.subheader(f"💰 Registros DEBE ({len(debe_registros)} registros)")
-                            st.dataframe(debe_registros[['Estado', 'Monto', 'DEBE', 'BANCO']].head(10), use_container_width=True)
+                            st.dataframe(debe_registros[['Estado', 'Fecha', 'Monto', 'DEBE', 'BANCO']].head(10), use_container_width=True)
                         
                         if len(haber_registros) > 0:
                             st.subheader(f"💰 Registros HABER ({len(haber_registros)} registros)")
-                            st.dataframe(haber_registros[['Estado', 'Monto', 'HABER', 'BANCO']].head(10), use_container_width=True)
+                            st.dataframe(haber_registros[['Estado', 'Fecha', 'Monto', 'HABER', 'BANCO']].head(10), use_container_width=True)
                     
                     with tab2:
+                        st.subheader("📅 Vista de Fechas Normalizadas")
+                        if 'Fecha' in df_final.columns:
+                            fechas_df = df_final[['Fecha', 'BANCO', 'Monto']].copy()
+                            fechas_df = fechas_df[fechas_df['Fecha'].notna() & (fechas_df['Fecha'] != '')]
+                            
+                            if len(fechas_df) > 0:
+                                st.dataframe(fechas_df.head(20), use_container_width=True)
+                                st.info(f"📊 Mostrando las primeras 20 fechas de {len(fechas_df)} total procesadas")
+                                
+                                # Estadísticas de fechas
+                                if len(fechas_df) > 0:
+                                    st.write("**📈 Resumen de fechas:**")
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        st.metric("📅 Total con fecha", len(fechas_df))
+                                    with col2:
+                                        fechas_unicas = fechas_df['Fecha'].nunique()
+                                        st.metric("📅 Fechas únicas", fechas_unicas)
+                                    with col3:
+                                        if fechas_unicas > 0:
+                                            fecha_ejemplo = fechas_df['Fecha'].iloc[0]
+                                            st.metric("📅 Formato", fecha_ejemplo)
+                            else:
+                                st.warning("No se encontraron fechas válidas en el archivo")
+                        else:
+                            st.warning("No se encontró columna de Fecha en los datos")
+                    
+                    with tab3:
                         st.subheader("📊 Resumen del Proceso")
                         if df_resumen is not None:
                             st.dataframe(df_resumen, use_container_width=True)
                         else:
                             st.warning("No hay datos de resumen disponibles")
                     
-                    with tab3:
+                    with tab4:
                         st.subheader("📈 Estadísticas")
                         if df_estadisticas is not None:
                             st.dataframe(df_estadisticas, use_container_width=True)
@@ -609,6 +716,7 @@ def main():
     # Footer
     st.markdown("---")
     st.markdown("🔧 **Desarrollado para automatizar el procesamiento de carátulas bancarias**")
+    st.markdown("📅 **Versión actualizada**: Normalización automática de fechas sin hora (formato YYYY-MM-DD)")
     st.markdown("💡 **Tip**: Los montos se clasifican automáticamente usando los textos del campo Estado y la columna Tipo de extracto")
 
 if __name__ == "__main__":
