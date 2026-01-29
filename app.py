@@ -401,7 +401,7 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                     df_procesado['Moneda'] = ''
                 
                 # Agregar columna de banco
-                df_procesado['BANCO'] = limpiar_nombre_banco(nombre_hoja)
+                df_procesado['BANCO'] = nombre_hoja
                 
                 # Limpiar datos
                 for col in df_procesado.columns:
