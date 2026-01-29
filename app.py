@@ -328,12 +328,14 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
                     'Moneda', 'BANCO'
                 ]
                 
-                for col in columnas_objetivo[:-2]:
-                    if col in mapeo_columnas:
-                        valores = [df_hoja.iloc[idx, mapeo_columnas[col]] if idx < len(df_hoja) and mapeo_columnas[col] < len(df_hoja.columns) else '' for idx in filas_validas]
-                        df_procesado[col] = valores
-                    else:
-                        df_procesado[col] = [''] * len(filas_validas)
+                # Procesar todas las columnas excepto 'Moneda' y 'BANCO' que se agregan después
+                for col in columnas_objetivo:
+                    if col not in ['Moneda', 'BANCO']:
+                        if col in mapeo_columnas:
+                            valores = [df_hoja.iloc[idx, mapeo_columnas[col]] if idx < len(df_hoja) and mapeo_columnas[col] < len(df_hoja.columns) else '' for idx in filas_validas]
+                            df_procesado[col] = valores
+                        else:
+                            df_procesado[col] = [''] * len(filas_validas)
                 
                 # Agregar columna de moneda usando mapeo actualizado
                 monedas_asignadas = 0
