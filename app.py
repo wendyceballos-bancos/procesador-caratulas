@@ -463,6 +463,21 @@ def procesar_archivo_excel(archivo, progress_callback=None, log_callback=None):
             
             df_final['Fecha'] = fechas_normalizadas
             log(f"✅ Fechas normalizadas: {fechas_procesadas} registros procesados")
+
+        # Normalizar también la columna 'Fecha transacción' con el mismo formato
+        if 'Fecha transacción' in df_final.columns:
+            fechas_transaccion_procesadas = 0
+            fechas_transaccion_normalizadas = []
+
+            for idx in df_final.index:
+                fecha_original = df_final.at[idx, 'Fecha transacción']
+                fecha_normalizada = normalizar_fecha_sin_hora(fecha_original)
+                fechas_transaccion_normalizadas.append(fecha_normalizada)
+                if fecha_normalizada:
+                    fechas_transaccion_procesadas += 1
+
+            df_final['Fecha transacción'] = fechas_transaccion_normalizadas
+            log(f"✅ Fechas de transacción normalizadas: {fechas_transaccion_procesadas} registros procesados")
         
         actualizar_progreso(85)
         
