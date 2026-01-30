@@ -152,10 +152,10 @@ def normalizar_fecha_sin_hora(fecha_value):
             return ''
         
         if hasattr(fecha_value, 'date') and callable(fecha_value.date):
-            return fecha_value.date().strftime('%Y-%m-%d')
+            return fecha_value.date().strftime('%d-%m-%Y')
         
         if hasattr(fecha_value, 'strftime'):
-            return fecha_value.strftime('%Y-%m-%d')
+            return fecha_value.strftime('%d-%m-%Y')
         
         fecha_str = str(fecha_value).strip()
         
@@ -163,7 +163,7 @@ def normalizar_fecha_sin_hora(fecha_value):
             try:
                 fecha_parseada = pd.to_datetime(fecha_str, errors='coerce')
                 if not pd.isna(fecha_parseada):
-                    return fecha_parseada.strftime('%Y-%m-%d')
+                    return fecha_parseada.strftime('%d-%m-%Y')
             except:
                 pass
         
@@ -171,7 +171,7 @@ def normalizar_fecha_sin_hora(fecha_value):
             try:
                 fecha_parseada = pd.to_datetime(fecha_str, errors='coerce')
                 if not pd.isna(fecha_parseada):
-                    return fecha_parseada.strftime('%Y-%m-%d')
+                    return fecha_parseada.strftime('%d-%m-%Y')
             except:
                 pass
         
